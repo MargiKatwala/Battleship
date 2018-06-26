@@ -1,0 +1,193 @@
+/* 
+ * Project 4: Battleship
+ * Author: Margi Katwala (mkatwa3), Rime Brika (rbrika2), Anusha Pai (apai7)
+ * Professor Troy and Wei
+ * Fall 2017
+ */
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.UnknownHostException;
+
+import javax.swing.JOptionPane;
+
+
+
+public class Game {
+	private static boolean connected = false;
+	public static boolean serverMode;
+	public static ObjectOutputStream outC;
+	public static ObjectOutputStream outS;
+	public static ObjectInputStream inS;
+	public static ObjectInputStream inC;
+	public static Board server;
+	public static Board client;
+	public static Board board;
+
+	public static volatile int x = 0;
+
+	public static void main(String args[]) {
+		board = new Board("Board");
+		System.out.println("MODE"+serverMode);
+		System.out.println("CONNECTED"+connected);
+
+		while(!connected) {}
+		System.out.println("MODE"+serverMode);
+		System.out.println("CONNECTED"+connected);
+		if(serverMode) {
+			interactWithClient();
+		} else {
+			interactWithServer();
+		}
+
+	}
+
+	public static void interactWithClient() {
+		if(board.placeShips()) {
+			// move onto client
+			System.out.println("server finished placing ships");
+		}
+	}
+
+	public static void interactWithServer() {
+		if(board.placeShips()) {
+			// move onto client
+			System.out.println("client finished placing ships");
+		}
+	}
+
+
+
+	public static void setUpServer() {
+		//server = new Board("Server");
+		ServerSocket serverSocket = null; 
+		try { 
+			serverSocket = new ServerSocket(10007);
+			x = 2;
+			System.out.println("Server Info:");
+			serverSocket.getInetAddress();
+			System.out.println("    IP address: " + InetAddress.getLocalHost().getHostAddress());
+			System.out.println("    Port      : " + serverSocket.getLocalPort());
+			// BufferedReader and BufferWriter -> send the ip address and port to the client
+		} 
+		catch (IOException e) 
+		{ 
+			System.err.println("Could not listen on port: 10007."); 
+			System.exit(1); 
+		} 
+
+		Socket clientSocket = null; 
+
+		// Waiting for Client
+		try { 
+			System.out.println ("Waiting for Client");
+			clientSocket = serverSocket.accept(); 
+			x = 8;
+			System.out.println ("Established Connection");
+			connected=true;
+		} 
+		catch (IOException e) 
+		{ 
+			System.err.println("Accept failed."); 
+			System.exit(1); 
+		} 
+		board.setTitle("Server");
+		board.connectionEstablished();
+
+		// Getting input and output streams
+		outS=null;
+		inS=null;
+		try {
+			outS = new ObjectOutputStream(
+					clientSocket.getOutputStream()); 
+			inS = new ObjectInputStream( 
+					clientSocket.getInputStream()); 
+		} catch (Exception ex) {
+			System.err.println("Error occured : setUpServer()");
+		}
+		// reading and writing data from/to stream
+		try {
+			System.out.println(" TRYING TO READ");
+			client= (Board)inS.readObject();
+			System.out.println("cl recie=ved");
+		}
+		catch(Exception ex) {
+			System.out.println (ex.getMessage());
+			System.out.println("NOtrecie=ved");
+		}
+		try {
+			System.out.println(" TRYING TO Send");
+			outS.writeObject(board);
+			System.out.println("sent");
+			outS.flush();
+			outS.close();
+			inS.close();
+			clientSocket.close();
+			serverSocket.close();
+		}
+		catch(Exception ex){
+			System.out.println (ex.getMessage());
+			System.out.println(" NOT sent");
+		}
+
+	}
+	public static void setUpClient() {
+		Socket echoSocket = null;
+		outC = null;
+		inC = null;
+		//client = new Board("Client");
+
+		while(!connected) {
+			try {
+				echoSocket = new Socket("127.0.0.1", 10007);
+				board.setTitle("Client");
+				board.connectionEstablished();
+
+				System.out.println("----------------------"+ x);
+
+				outC = new ObjectOutputStream(echoSocket.getOutputStream());
+				inC = new ObjectInputStream(echoSocket.getInputStream());
+				connected = true;
+
+			} catch (UnknownHostException e) {
+				//System.err.println("Not able to recognize given host");
+			} catch (IOException e) {
+				//System.err.println("Couldn't get I/O for "
+				// + "the connection.");
+			}
+
+		}
+		// reading and writing data from/to stream
+
+		try {
+			System.out.println(" TRYING TO SEND");
+			outC.writeObject(board);
+			System.out.println("sent");
+			outC.flush();
+		} catch (Exception ex) {
+			System.out.println (ex.getMessage());
+			System.out.println(" NOT sent");
+			//System.err.println("Error occured while closing streams");
+		}
+		try {
+			System.out.println(" TRYING TO READ");
+			server= (Board)inC.readObject();
+			System.out.println(" ser recie=ved");
+			outC.close();
+			inC.close();
+			echoSocket.close();
+		}
+		catch(Exception ex) {
+			System.out.println (ex.getMessage());
+			System.out.println("NOtrecie=ved");
+		}
+
+		//  }
+
+	}
+
+
+}
