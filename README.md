@@ -1,5 +1,10 @@
 # Battleship
 A socket based two player version of the game Battleship   
+To Compile:
+java *.java
+
+To Run:
+java Grid
 
 How to Play: 
 
